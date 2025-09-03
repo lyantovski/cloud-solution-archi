@@ -194,6 +194,23 @@ Note: The resume file was uploaded but needs to be requested directly from the a
         coverLetter: '',
         resumeFile: null
       })
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      toast.success('Application submitted successfully! Email notification has been prepared for lyantovski@microsoft.com')
+      onOpenChange(false)
+      
+      // Reset form
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        linkedinUrl: '',
+        experience: '',
+        coverLetter: '',
+        resumeFile: null
+      })
     } catch (error) {
       toast.error('Failed to submit application. Please try again.')
       console.error('Application submission error:', error)
@@ -237,23 +254,6 @@ Note: The resume file was uploaded but needs to be requested directly from the a
                 <div>
                   <Label htmlFor="lastName">Last Name *</Label>
                   <Input
-                    id="lastName"
-                    value={formData.lastName}
-                    onChange={(e) => handleInputChange('lastName', e.target.value)}
-                    placeholder="Doe"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="email">Email Address *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  placeholder="john.doe@email.com"
                   required
                 />
               </div>
