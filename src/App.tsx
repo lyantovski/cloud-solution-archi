@@ -8,7 +8,7 @@ import { Cloud, Code, Users, CheckCircle, ArrowRight, Upload, Building, Calendar
 import { ApplicationForm } from '@/components/ApplicationForm'
 import { RequirementsChecker } from '@/components/RequirementsChecker'
 import { useKV } from '@github/spark/hooks'
-import azureActionHero from '@/assets/images/azure-action-hero.png'
+import azureActionHero from '@/assets/images/ChatGPT Image Jul 22, 2025, 10_23_33 PM.png'
 
 function App() {
   const [showApplicationForm, setShowApplicationForm] = useState(false)
