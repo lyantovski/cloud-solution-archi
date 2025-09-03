@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { useKV } from '@github/spark/hooks'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent } from '@/components/ui/card'
-import { Upload, CheckCircle, AlertCircle } from '@phosphor-icons/react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Upload, User, Mail, Phone, FileText, Send } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 
 interface ApplicationFormProps {
@@ -14,35 +15,19 @@ interface ApplicationFormProps {
   onOpenChange: (open: boolean) => void
 }
 
-interface ApplicationData {
-  id: string
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  linkedIn: string
-  currentRole: string
-  yearsExperience: string
-  coverLetter: string
-  cvFileName: string
-  submittedAt: string
-}
-
 export function ApplicationForm({ open, onOpenChange }: ApplicationFormProps) {
-  const [applications, setApplications] = useKV<ApplicationData[]>("applications", [])
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [cvFile, setCvFile] = useState<File | null>(null)
-  
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     phone: '',
-    linkedIn: '',
-    currentRole: '',
-    yearsExperience: '',
-    coverLetter: ''
+    linkedinUrl: '',
+    experience: '',
+    coverLetter: '',
+    resumeFile: null as File | null
   })
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -51,76 +36,46 @@ export function ApplicationForm({ open, onOpenChange }: ApplicationFormProps) {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        toast.error('File size must be less than 10MB')
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error('File size must be less than 5MB')
         return
       }
       if (!file.type.includes('pdf') && !file.type.includes('doc')) {
-        toast.error('Please upload a PDF or Word document')
+        toast.error('Please upload a PDF or DOC file')
         return
       }
-      setCvFile(file)
+      setFormData(prev => ({ ...prev, resumeFile: file }))
+      toast.success('Resume uploaded successfully')
     }
-  }
-
-  const validateForm = () => {
-    const required = ['firstName', 'lastName', 'email', 'currentRole', 'yearsExperience']
-    const missing = required.filter(field => !formData[field as keyof typeof formData])
-    
-    if (missing.length > 0) {
-      toast.error('Please fill in all required fields')
-      return false
-    }
-    
-    if (!cvFile) {
-      toast.error('Please upload your CV')
-      return false
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(formData.email)) {
-      toast.error('Please enter a valid email address')
-      return false
-    }
-    
-    return true
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!validateForm()) return
-    
     setIsSubmitting(true)
-    
+
+    // Validate required fields
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.resumeFile) {
+      toast.error('Please fill in all required fields and upload your resume')
+      setIsSubmitting(false)
+      return
+    }
+
+    // Simulate form submission
     try {
-      const applicationId = `app_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      
-      const newApplication: ApplicationData = {
-        id: applicationId,
-        ...formData,
-        cvFileName: cvFile!.name,
-        submittedAt: new Date().toISOString()
-      }
-      
-      setApplications(currentApplications => [...currentApplications, newApplication])
-      
+      await new Promise(resolve => setTimeout(resolve, 2000))
       toast.success('Application submitted successfully! We\'ll be in touch soon.')
-      
+      onOpenChange(false)
       // Reset form
       setFormData({
         firstName: '',
         lastName: '',
         email: '',
         phone: '',
-        linkedIn: '',
-        currentRole: '',
-        yearsExperience: '',
-        coverLetter: ''
+        linkedinUrl: '',
+        experience: '',
+        coverLetter: '',
+        resumeFile: null
       })
-      setCvFile(null)
-      onOpenChange(false)
-      
     } catch (error) {
       toast.error('Failed to submit application. Please try again.')
     } finally {
@@ -134,15 +89,21 @@ export function ApplicationForm({ open, onOpenChange }: ApplicationFormProps) {
         <DialogHeader>
           <DialogTitle className="text-2xl">Apply for Cloud Solution Architect</DialogTitle>
           <DialogDescription>
-            Submit your application to join Microsoft's cloud solutions team. All fields marked with * are required.
+            Submit your application for the Cloud Solution Architect position at Microsoft. 
+            All fields marked with * are required.
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Personal Information */}
           <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Personal Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">First Name *</Label>
@@ -165,67 +126,65 @@ export function ApplicationForm({ open, onOpenChange }: ApplicationFormProps) {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div>
-                  <Label htmlFor="email">Email Address *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    placeholder="john.doe@email.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="+1 (555) 123-4567"
-                  />
-                </div>
-              </div>
-              <div className="mt-4">
-                <Label htmlFor="linkedIn">LinkedIn Profile</Label>
+              
+              <div>
+                <Label htmlFor="email">Email Address *</Label>
                 <Input
-                  id="linkedIn"
-                  value={formData.linkedIn}
-                  onChange={(e) => handleInputChange('linkedIn', e.target.value)}
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  placeholder="john.doe@email.com"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  placeholder="+1 (555) 123-4567"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="linkedinUrl">LinkedIn Profile</Label>
+                <Input
+                  id="linkedinUrl"
+                  value={formData.linkedinUrl}
+                  onChange={(e) => handleInputChange('linkedinUrl', e.target.value)}
                   placeholder="https://linkedin.com/in/johndoe"
                 />
               </div>
             </CardContent>
           </Card>
 
-          {/* Professional Experience */}
+          {/* Experience */}
           <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-lg font-semibold mb-4">Professional Experience</h3>
+            <CardHeader>
+              <CardTitle>Experience & Qualifications</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="currentRole">Current Role/Title *</Label>
-                <Input
-                  id="currentRole"
-                  value={formData.currentRole}
-                  onChange={(e) => handleInputChange('currentRole', e.target.value)}
-                  placeholder="Senior Cloud Architect"
-                  required
-                />
+                <Label htmlFor="experience">Years of Cloud Experience</Label>
+                <Select onValueChange={(value) => handleInputChange('experience', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your experience level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3-5">3-5 years</SelectItem>
+                    <SelectItem value="5-7">5-7 years</SelectItem>
+                    <SelectItem value="7-10">7-10 years</SelectItem>
+                    <SelectItem value="10+">10+ years</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="mt-4">
-                <Label htmlFor="yearsExperience">Years of Cloud Experience *</Label>
-                <Input
-                  id="yearsExperience"
-                  value={formData.yearsExperience}
-                  onChange={(e) => handleInputChange('yearsExperience', e.target.value)}
-                  placeholder="8 years"
-                  required
-                />
-              </div>
-              <div className="mt-4">
-                <Label htmlFor="coverLetter">Cover Letter</Label>
+
+              <div>
+                <Label htmlFor="coverLetter">Cover Letter / Why are you interested?</Label>
                 <Textarea
                   id="coverLetter"
                   value={formData.coverLetter}
@@ -237,60 +196,63 @@ export function ApplicationForm({ open, onOpenChange }: ApplicationFormProps) {
             </CardContent>
           </Card>
 
-          {/* CV Upload */}
+          {/* Resume Upload */}
           <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-lg font-semibold mb-4">Upload CV/Resume *</h3>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Resume Upload *
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="cv-upload"
-                />
-                <label htmlFor="cv-upload" className="cursor-pointer">
-                  <div className="flex flex-col items-center gap-2">
-                    {cvFile ? (
-                      <>
-                        <CheckCircle className="h-12 w-12 text-green-500" />
-                        <p className="text-sm font-medium">{cvFile.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(cvFile.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-12 w-12 text-muted-foreground" />
-                        <p className="text-sm font-medium">Click to upload your CV</p>
-                        <p className="text-xs text-muted-foreground">
-                          PDF or Word document, max 10MB
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </label>
+                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">
+                    {formData.resumeFile ? formData.resumeFile.name : 'Upload your resume'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    PDF or DOC files only, max 5MB
+                  </p>
+                  <Input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                    className="mt-2"
+                    required
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Submit Button */}
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="flex-1">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1"
+            >
               {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Submitting...
-                </>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="mr-2"
+                >
+                  <Upload className="h-4 w-4" />
+                </motion.div>
               ) : (
-                <>
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Submit Application
-                </>
+                <Send className="mr-2 h-4 w-4" />
               )}
+              {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </Button>
           </div>
         </form>

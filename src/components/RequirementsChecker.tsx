@@ -1,297 +1,240 @@
 import { useState } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { CheckCircle, AlertTriangle, ArrowRight, Trophy } from '@phosphor-icons/react'
+import { CheckCircle, XCircle, AlertCircle, TrendUp } from '@phosphor-icons/react'
 
 interface RequirementsCheckerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-interface Requirement {
-  id: string
-  category: string
-  text: string
-  weight: number
-  essential: boolean
-}
-
-const requirements: Requirement[] = [
-  {
-    id: 'education',
-    category: 'Education',
-    text: "Bachelor's degree in Computer Science, Engineering, Business, or related field",
-    weight: 10,
-    essential: true
-  },
-  {
-    id: 'experience',
-    category: 'Experience', 
-    text: "7+ years of experience in cloud and hybrid infrastructure technologies",
-    weight: 20,
-    essential: true
-  },
-  {
-    id: 'enterprise',
-    category: 'Experience',
-    text: "Experience with enterprise-scale application portfolios and cloud-native app hosting",
-    weight: 15,
-    essential: true
-  },
-  {
-    id: 'azure-ai',
-    category: 'Technical Skills',
-    text: "Proficiency in Azure AI Foundry",
-    weight: 8,
-    essential: false
-  },
-  {
-    id: 'azure-apps',
-    category: 'Technical Skills', 
-    text: "Experience with AKS and App Service",
-    weight: 10,
-    essential: true
-  },
-  {
-    id: 'azure-data',
-    category: 'Technical Skills',
-    text: "Knowledge of Azure Cosmos DB, Azure SQL Databases, Azure Database for PostgreSQL",
-    weight: 8,
-    essential: false
-  },
-  {
-    id: 'integration',
-    category: 'Technical Skills',
-    text: "Experience with Integration Services (APIM)",
-    weight: 5,
-    essential: false
-  },
-  {
-    id: 'devops',
-    category: 'Technical Skills',
-    text: "Strong DevOps skills and experience with GitHub",
-    weight: 10,
-    essential: true
-  },
-  {
-    id: 'communication',
-    category: 'Soft Skills',
-    text: "Strong communication skills and ability to lead virtual teams",
-    weight: 15,
-    essential: true
-  },
-  {
-    id: 'stakeholder',
-    category: 'Soft Skills',
-    text: "Ability to influence stakeholders and work with C-suite executives",
-    weight: 10,
-    essential: false
-  }
-]
-
 export function RequirementsChecker({ open, onOpenChange }: RequirementsCheckerProps) {
-  const [checkedRequirements, setCheckedRequirements] = useState<Set<string>>(new Set())
-  const [showResults, setShowResults] = useState(false)
+  const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({})
 
-  const handleRequirementChange = (requirementId: string, checked: boolean) => {
-    setCheckedRequirements(prev => {
-      const newSet = new Set(prev)
-      if (checked) {
-        newSet.add(requirementId)
-      } else {
-        newSet.delete(requirementId)
-      }
-      return newSet
-    })
-  }
-
-  const calculateScore = () => {
-    const totalWeight = requirements.reduce((sum, req) => sum + req.weight, 0)
-    const earnedWeight = requirements
-      .filter(req => checkedRequirements.has(req.id))
-      .reduce((sum, req) => sum + req.weight, 0)
-    
-    return Math.round((earnedWeight / totalWeight) * 100)
-  }
-
-  const getEssentialsMet = () => {
-    const essentialRequirements = requirements.filter(req => req.essential)
-    const essentialsMet = essentialRequirements.filter(req => checkedRequirements.has(req.id))
-    return { met: essentialsMet.length, total: essentialRequirements.length }
-  }
-
-  const getFeedback = () => {
-    const score = calculateScore()
-    const { met, total } = getEssentialsMet()
-    
-    if (score >= 80 && met === total) {
-      return {
-        type: 'excellent',
-        icon: <Trophy className="h-8 w-8 text-green-500" />,
-        title: "Excellent Fit!",
-        message: "You meet most requirements for this role. We strongly encourage you to apply!",
-        action: "Apply Now"
-      }
-    } else if (score >= 60 && met >= total * 0.8) {
-      return {
-        type: 'good',
-        icon: <CheckCircle className="h-8 w-8 text-blue-500" />,
-        title: "Good Candidate",
-        message: "You have strong qualifications. Consider highlighting your transferable skills in your application.",
-        action: "Apply with Confidence"
-      }
-    } else {
-      return {
-        type: 'developing',
-        icon: <AlertTriangle className="h-8 w-8 text-amber-500" />,
-        title: "Keep Developing",
-        message: "You may want to gain more experience in the essential areas before applying.",
-        action: "Learn More About Requirements"
-      }
+  const requirements = [
+    {
+      category: "Education",
+      items: [
+        { id: "bachelor", text: "Bachelor's degree in Computer Science, Engineering, Business, or related field", required: true },
+        { id: "master", text: "Master's degree (preferred)", required: false }
+      ]
+    },
+    {
+      category: "Experience",
+      items: [
+        { id: "cloud-exp", text: "7+ years of experience in cloud and hybrid infrastructure technologies", required: true },
+        { id: "enterprise", text: "Experience with enterprise-scale application portfolios", required: true },
+        { id: "architecture", text: "Cloud-native app hosting and design experience", required: true }
+      ]
+    },
+    {
+      category: "Azure Services",
+      items: [
+        { id: "azure-ai", text: "Azure AI Foundry experience", required: true },
+        { id: "aks", text: "AKS (Azure Kubernetes Service) proficiency", required: true },
+        { id: "app-service", text: "App Service knowledge", required: true },
+        { id: "cosmos", text: "Azure Cosmos DB experience", required: true },
+        { id: "sql", text: "Azure SQL Databases proficiency", required: true },
+        { id: "postgres", text: "Azure Database for PostgreSQL", required: true },
+        { id: "apim", text: "API Management (APIM) experience", required: true }
+      ]
+    },
+    {
+      category: "Development & DevOps",
+      items: [
+        { id: "github", text: "GitHub proficiency", required: true },
+        { id: "devops", text: "DevOps skills and methodologies", required: true },
+        { id: "ci-cd", text: "CI/CD pipeline experience", required: false }
+      ]
+    },
+    {
+      category: "Leadership & Communication",
+      items: [
+        { id: "communication", text: "Strong communication skills", required: true },
+        { id: "virtual-teams", text: "Ability to lead virtual teams", required: true },
+        { id: "stakeholder", text: "Experience influencing stakeholders", required: true },
+        { id: "c-level", text: "C-suite interaction experience", required: false }
+      ]
+    },
+    {
+      category: "Certifications",
+      items: [
+        { id: "azure-cert", text: "Azure technical certifications", required: false },
+        { id: "aws-cert", text: "AWS certifications", required: false },
+        { id: "gcp-cert", text: "GCP certifications", required: false },
+        { id: "security-cert", text: "Security domain certifications", required: false }
+      ]
     }
+  ]
+
+  const handleItemChange = (itemId: string, checked: boolean) => {
+    setCheckedItems(prev => ({ ...prev, [itemId]: checked }))
   }
 
-  const categorizedRequirements = requirements.reduce((acc, req) => {
-    if (!acc[req.category]) {
-      acc[req.category] = []
-    }
-    acc[req.category].push(req)
-    return acc
-  }, {} as Record<string, Requirement[]>)
+  // Calculate overall score
+  const totalRequiredItems = requirements.flatMap(cat => cat.items.filter(item => item.required)).length
+  const totalOptionalItems = requirements.flatMap(cat => cat.items.filter(item => !item.required)).length
+  const checkedRequiredItems = requirements.flatMap(cat => cat.items.filter(item => item.required && checkedItems[item.id])).length
+  const checkedOptionalItems = requirements.flatMap(cat => cat.items.filter(item => !item.required && checkedItems[item.id])).length
 
-  const handleReset = () => {
-    setCheckedRequirements(new Set())
-    setShowResults(false)
+  const requiredScore = (checkedRequiredItems / totalRequiredItems) * 100
+  const optionalScore = (checkedOptionalItems / totalOptionalItems) * 100
+  const overallScore = (requiredScore * 0.8) + (optionalScore * 0.2)
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600'
+    if (score >= 60) return 'text-yellow-600'
+    return 'text-red-600'
   }
 
-  const score = calculateScore()
-  const feedback = getFeedback()
-  const { met, total } = getEssentialsMet()
+  const getScoreIcon = (score: number) => {
+    if (score >= 80) return <CheckCircle className="h-5 w-5 text-green-600" />
+    if (score >= 60) return <AlertCircle className="h-5 w-5 text-yellow-600" />
+    return <XCircle className="h-5 w-5 text-red-600" />
+  }
+
+  const getFeedback = (score: number) => {
+    if (score >= 90) return "Excellent fit! You meet almost all requirements."
+    if (score >= 80) return "Very good fit! You meet most requirements."
+    if (score >= 70) return "Good fit! Consider strengthening a few areas."
+    if (score >= 60) return "Decent fit, but focus on developing key skills."
+    return "Consider gaining more experience before applying."
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">Requirements Checker</DialogTitle>
           <DialogDescription>
-            Check off the requirements you meet to see how well you align with this role.
+            Check how well you match the requirements for the Cloud Solution Architect position.
+            Be honest in your self-assessment for the most accurate results.
           </DialogDescription>
         </DialogHeader>
 
-        {!showResults ? (
-          <div className="space-y-6">
-            {Object.entries(categorizedRequirements).map(([category, reqs]) => (
-              <Card key={category}>
-                <CardContent className="pt-6">
-                  <h3 className="text-lg font-semibold mb-4">{category}</h3>
+        <div className="space-y-6">
+          {/* Score Overview */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendUp className="h-5 w-5" />
+                Your Match Score
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4">
+                {getScoreIcon(overallScore)}
+                <div className="flex-1">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium">Overall Match</span>
+                    <span className={`text-sm font-bold ${getScoreColor(overallScore)}`}>
+                      {Math.round(overallScore)}%
+                    </span>
+                  </div>
+                  <Progress value={overallScore} className="h-2" />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-muted-foreground">Required Skills</span>
+                    <span className="text-xs font-medium">{checkedRequiredItems}/{totalRequiredItems}</span>
+                  </div>
+                  <Progress value={requiredScore} className="h-1" />
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-muted-foreground">Nice to Have</span>
+                    <span className="text-xs font-medium">{checkedOptionalItems}/{totalOptionalItems}</span>
+                  </div>
+                  <Progress value={optionalScore} className="h-1" />
+                </div>
+              </div>
+
+              <div className="bg-muted/50 p-3 rounded-lg">
+                <p className="text-sm font-medium mb-1">Assessment:</p>
+                <p className="text-sm text-muted-foreground">{getFeedback(overallScore)}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Requirements Checklist */}
+          <div className="space-y-4">
+            {requirements.map((category) => (
+              <Card key={category.category}>
+                <CardHeader>
+                  <CardTitle className="text-lg">{category.category}</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-3">
-                    {reqs.map((requirement) => (
-                      <div key={requirement.id} className="flex items-start space-x-3">
+                    {category.items.map((item) => (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-start gap-3"
+                      >
                         <Checkbox
-                          id={requirement.id}
-                          checked={checkedRequirements.has(requirement.id)}
+                          id={item.id}
+                          checked={checkedItems[item.id] || false}
                           onCheckedChange={(checked) => 
-                            handleRequirementChange(requirement.id, checked as boolean)
+                            handleItemChange(item.id, checked as boolean)
                           }
                           className="mt-1"
                         />
-                        <label 
-                          htmlFor={requirement.id} 
-                          className="text-sm leading-relaxed cursor-pointer flex-1"
-                        >
-                          {requirement.text}
-                          {requirement.essential && (
-                            <span className="ml-2 text-xs font-medium text-red-500">*Essential</span>
-                          )}
-                        </label>
-                      </div>
+                        <div className="flex-1">
+                          <label
+                            htmlFor={item.id}
+                            className="text-sm font-medium leading-relaxed cursor-pointer"
+                          >
+                            {item.text}
+                          </label>
+                          <div className="flex gap-2 mt-1">
+                            <Badge 
+                              variant={item.required ? "default" : "secondary"}
+                              className="text-xs"
+                            >
+                              {item.required ? "Required" : "Preferred"}
+                            </Badge>
+                          </div>
+                        </div>
+                      </motion.div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
             ))}
+          </div>
 
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-                Close
-              </Button>
-              <Button 
-                onClick={() => setShowResults(true)} 
+          {/* Action Buttons */}
+          <div className="flex gap-4 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
+              Close
+            </Button>
+            {overallScore >= 70 && (
+              <Button
+                onClick={() => {
+                  onOpenChange(false)
+                  // This would trigger the application form
+                  window.dispatchEvent(new CustomEvent('openApplicationForm'))
+                }}
                 className="flex-1"
-                disabled={checkedRequirements.size === 0}
               >
-                Check My Fit
-                <ArrowRight className="ml-2 h-4 w-4" />
+                Apply Now
               </Button>
-            </div>
+            )}
           </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Results Summary */}
-            <Card>
-              <CardContent className="pt-6 text-center">
-                <div className="flex justify-center mb-4">
-                  {feedback.icon}
-                </div>
-                <h3 className="text-2xl font-bold mb-2">{feedback.title}</h3>
-                <p className="text-muted-foreground mb-6">{feedback.message}</p>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-primary mb-1">{score}%</div>
-                    <div className="text-sm text-muted-foreground">Overall Match</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-primary mb-1">{met}/{total}</div>
-                    <div className="text-sm text-muted-foreground">Essential Requirements</div>
-                  </div>
-                </div>
-
-                <Progress value={score} className="mb-4" />
-              </CardContent>
-            </Card>
-
-            {/* Detailed Breakdown */}
-            <Card>
-              <CardContent className="pt-6">
-                <h4 className="text-lg font-semibold mb-4">Your Qualifications Breakdown</h4>
-                <div className="space-y-3">
-                  {requirements.map((req) => (
-                    <div key={req.id} className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle 
-                          className={`h-5 w-5 ${
-                            checkedRequirements.has(req.id) ? 'text-green-500' : 'text-gray-300'
-                          }`} 
-                        />
-                        <span className={`text-sm ${
-                          checkedRequirements.has(req.id) ? 'text-foreground' : 'text-muted-foreground'
-                        }`}>
-                          {req.text}
-                        </span>
-                      </div>
-                      {req.essential && (
-                        <span className="text-xs font-medium text-red-500">Essential</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex gap-3 pt-4">
-              <Button variant="outline" onClick={handleReset} className="flex-1">
-                Check Again
-              </Button>
-              <Button onClick={() => onOpenChange(false)} className="flex-1">
-                {feedback.action}
-              </Button>
-            </div>
-          </div>
-        )}
+        </div>
       </DialogContent>
     </Dialog>
   )
