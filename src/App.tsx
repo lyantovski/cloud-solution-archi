@@ -8,6 +8,7 @@ import { Cloud, Code, Users, CheckCircle, ArrowRight, Upload, Building, Calendar
 import { ApplicationForm } from '@/components/ApplicationForm'
 import { RequirementsChecker } from '@/components/RequirementsChecker'
 import { useKV } from '@github/spark/hooks'
+import azureActionHero from '@/assets/images/azure-action-hero.png'
 
 function App() {
   const [showApplicationForm, setShowApplicationForm] = useState(false)
@@ -76,43 +77,67 @@ function App() {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <div className="container mx-auto px-4 py-16 lg:py-24">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-4xl mx-auto text-center"
-          >
-            <Badge variant="secondary" className="mb-4">
-              <Building className="h-4 w-4 mr-2" />
-              Microsoft Cloud Solutions
-            </Badge>
-            <h1 className="text-4xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight">
-              Cloud Solution Architect
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-              Lead enterprise cloud transformations, shape Microsoft's technical strategy, and mentor teams 
-              while driving customer success at scale.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                size="lg" 
-                className="text-lg px-8 py-6"
-                onClick={() => setShowApplicationForm(true)}
-              >
-                Apply Now
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="text-lg px-8 py-6"
-                onClick={() => setShowRequirementsChecker(true)}
-              >
-                Check Your Fit
-                <CheckCircle className="ml-2 h-5 w-5" />
-              </Button>
-            </div>
-          </motion.div>
+          <div className="grid lg:grid-cols-2 gap-12 items-center max-w-7xl mx-auto">
+            {/* Text Content */}
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-center lg:text-left"
+            >
+              <Badge variant="secondary" className="mb-4">
+                <Building className="h-4 w-4 mr-2" />
+                Microsoft Cloud Solutions
+              </Badge>
+              <h1 className="text-4xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight">
+                Cloud Solution Architect
+              </h1>
+              <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
+                Lead enterprise cloud transformations, shape Microsoft's technical strategy, and mentor teams 
+                while driving customer success at scale.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Button 
+                  size="lg" 
+                  className="text-lg px-8 py-6"
+                  onClick={() => setShowApplicationForm(true)}
+                >
+                  Apply Now
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="lg" 
+                  className="text-lg px-8 py-6"
+                  onClick={() => setShowRequirementsChecker(true)}
+                >
+                  Check Your Fit
+                  <CheckCircle className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+            </motion.div>
+
+            {/* Azure Action Hero Image */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="flex justify-center lg:justify-end"
+            >
+              <div className="relative">
+                <motion.img
+                  src={azureActionHero}
+                  alt="Azure Action Hero - Cloud Solution Architect with Apps & AI tools"
+                  className="w-full max-w-md h-auto object-contain drop-shadow-2xl"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ duration: 0.3 }}
+                />
+                <div className="absolute -top-4 -right-4 bg-accent text-accent-foreground px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                  Azure Action Hero
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
