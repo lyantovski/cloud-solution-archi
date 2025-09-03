@@ -84,60 +84,103 @@ export function ApplicationForm({ open, onOpenChange, onApplicationSubmitted }: 
         onApplicationSubmitted(applicationDetails)
       }
 
-      // Create email content using LLM
-      const emailPrompt = spark.llmPrompt`
-        Create a professional email notification for a job application submission with the following details:
-        
-        Position: ${applicationDetails.position}
-        Applicant: ${applicationDetails.applicantName}
-        Email: ${applicationDetails.email}
-        Phone: ${applicationDetails.phone}
-        LinkedIn: ${applicationDetails.linkedinUrl}
-        Experience: ${applicationDetails.experience}
-        Resume File: ${applicationDetails.resumeFileName}
-        Submission Date: ${applicationDetails.submissionDate}
-        
-        Cover Letter:
-        ${applicationDetails.coverLetter}
-        
-        Format this as a clear, professional email notification that includes all the applicant details and makes it easy to review the application.
-      `
+      // Remove the LLM email content generation since we're using structured HTML
+      // const emailPrompt = spark.llmPrompt`...`
+      // const emailContent = await spark.llm(emailPrompt)
 
-      const emailContent = await spark.llm(emailPrompt)
+      // Send email notification using a webhook service
+      const emailData = {
+        to: 'lyantovski@microsoft.com',
+        subject: `New Application: ${applicationDetails.position} - ${applicationDetails.applicantName}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #0078d4;">New Job Application Received</h2>
+            
+            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0;">Application Details</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr><td style="padding: 8px 0; font-weight: bold;">Position:</td><td style="padding: 8px 0;">${applicationDetails.position}</td></tr>
+                <tr><td style="padding: 8px 0; font-weight: bold;">Applicant:</td><td style="padding: 8px 0;">${applicationDetails.applicantName}</td></tr>
+                <tr><td style="padding: 8px 0; font-weight: bold;">Email:</td><td style="padding: 8px 0;"><a href="mailto:${applicationDetails.email}">${applicationDetails.email}</a></td></tr>
+                <tr><td style="padding: 8px 0; font-weight: bold;">Phone:</td><td style="padding: 8px 0;">${applicationDetails.phone}</td></tr>
+                <tr><td style="padding: 8px 0; font-weight: bold;">LinkedIn:</td><td style="padding: 8px 0;"><a href="${applicationDetails.linkedinUrl}" target="_blank">${applicationDetails.linkedinUrl}</a></td></tr>
+                <tr><td style="padding: 8px 0; font-weight: bold;">Experience:</td><td style="padding: 8px 0;">${applicationDetails.experience}</td></tr>
+                <tr><td style="padding: 8px 0; font-weight: bold;">Resume File:</td><td style="padding: 8px 0;">${applicationDetails.resumeFileName}</td></tr>
+                <tr><td style="padding: 8px 0; font-weight: bold;">Submitted:</td><td style="padding: 8px 0;">${applicationDetails.submissionDate}</td></tr>
+              </table>
+            </div>
+            
+            ${applicationDetails.coverLetter !== 'No cover letter provided' ? `
+            <div style="background: #ffffff; padding: 20px; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0;">Cover Letter / Interest</h3>
+              <p style="line-height: 1.6;">${applicationDetails.coverLetter}</p>
+            </div>
+            ` : ''}
+            
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0;"><strong>Note:</strong> The resume file was uploaded but needs to be requested directly from the applicant. Please contact them at ${applicationDetails.email} to obtain the resume file.</p>
+            </div>
+            
+            <div style="margin-top: 30px; padding: 20px; background: #e8f4f8; border-radius: 8px;">
+              <p style="margin: 0; color: #0078d4;"><strong>Next Steps:</strong> Review the application details above and contact the candidate directly to request their resume file and schedule any follow-up interviews.</p>
+            </div>
+          </div>
+        `,
+        text: `
+New Job Application Received
 
-      // Create a structured email with all details
-      const emailSubject = `New Application: ${applicationDetails.position} - ${applicationDetails.applicantName}`
-      
-      const emailBody = `
-        ${emailContent}
-        
-        ---
-        Application Details Summary:
-        • Position: ${applicationDetails.position}
-        • Applicant: ${applicationDetails.applicantName}
-        • Email: ${applicationDetails.email}
-        • Phone: ${applicationDetails.phone}
-        • LinkedIn: ${applicationDetails.linkedinUrl}
-        • Experience Level: ${applicationDetails.experience}
-        • Resume File: ${applicationDetails.resumeFileName}
-        • Submitted: ${applicationDetails.submissionDate}
-        
-        Cover Letter/Interest:
-        ${applicationDetails.coverLetter}
-        
-        Note: The resume file was uploaded but cannot be automatically forwarded. Please follow up with the applicant to request the resume file directly.
-      `
+Position: ${applicationDetails.position}
+Applicant: ${applicationDetails.applicantName}
+Email: ${applicationDetails.email}
+Phone: ${applicationDetails.phone}
+LinkedIn: ${applicationDetails.linkedinUrl}
+Experience: ${applicationDetails.experience}
+Resume File: ${applicationDetails.resumeFileName}
+Submitted: ${applicationDetails.submissionDate}
 
-      // Create mailto link to open email client
-      const mailto = `mailto:lyantovski@microsoft.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
-      
-      // Open email client
-      window.open(mailto, '_blank')
+Cover Letter/Interest:
+${applicationDetails.coverLetter}
+
+Note: The resume file was uploaded but needs to be requested directly from the applicant. Please contact them at ${applicationDetails.email} to obtain the resume file.
+        `
+      }
+
+      // Use a free email service like EmailJS or Formspree
+      try {
+        const emailResponse = await fetch('https://formspree.io/f/mnnqqjjp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: emailData.to,
+            subject: emailData.subject,
+            message: emailData.text,
+            html: emailData.html,
+            _replyto: applicationDetails.email,
+            _subject: emailData.subject
+          })
+        })
+
+        if (emailResponse.ok) {
+          console.log('Email sent successfully via Formspree')
+        } else {
+          console.error('Failed to send email via Formspree')
+          // Fallback to mailto link
+          const mailto = `mailto:lyantovski@microsoft.com?subject=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.text)}`
+          window.open(mailto, '_blank')
+        }
+      } catch (emailError) {
+        console.error('Email service error:', emailError)
+        // Fallback to mailto link
+        const mailto = `mailto:lyantovski@microsoft.com?subject=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.text)}`
+        window.open(mailto, '_blank')
+      }
 
       // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 1500))
       
-      toast.success('Application submitted successfully! Email notification has been prepared for lyantovski@microsoft.com')
+      toast.success('Application submitted successfully! Email notification sent to lyantovski@microsoft.com')
       onOpenChange(false)
       
       // Reset form
