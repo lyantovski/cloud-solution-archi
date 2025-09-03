@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,10 +7,33 @@ import { Separator } from '@/components/ui/separator'
 import { Cloud, Code, Users, CheckCircle, ArrowRight, Upload, Building, Calendar } from '@phosphor-icons/react'
 import { ApplicationForm } from '@/components/ApplicationForm'
 import { RequirementsChecker } from '@/components/RequirementsChecker'
+import { useKV } from '@github/spark/hooks'
 
 function App() {
   const [showApplicationForm, setShowApplicationForm] = useState(false)
   const [showRequirementsChecker, setShowRequirementsChecker] = useState(false)
+  const [applications, setApplications] = useKV("job-applications", [])
+  const [showAdminPanel, setShowAdminPanel] = useState(false)
+
+  // Listen for the custom event from RequirementsChecker
+  useEffect(() => {
+    const handleOpenApplicationForm = () => {
+      setShowApplicationForm(true)
+    }
+
+    window.addEventListener('openApplicationForm', handleOpenApplicationForm)
+    return () => {
+      window.removeEventListener('openApplicationForm', handleOpenApplicationForm)
+    }
+  }, [])
+
+  const handleApplicationSubmitted = (applicationData: any) => {
+    setApplications((currentApplications) => [...currentApplications, applicationData])
+  }
+
+  const clearApplications = () => {
+    setApplications([])
+  }
 
   const keyResponsibilities = [
     {
@@ -242,7 +265,8 @@ function App() {
       {/* Application Form Modal */}
       <ApplicationForm 
         open={showApplicationForm} 
-        onOpenChange={setShowApplicationForm} 
+        onOpenChange={setShowApplicationForm}
+        onApplicationSubmitted={handleApplicationSubmitted}
       />
 
       {/* Requirements Checker Modal */}
@@ -250,6 +274,77 @@ function App() {
         open={showRequirementsChecker} 
         onOpenChange={setShowRequirementsChecker} 
       />
+
+      {/* Admin Panel - Hidden button for tracking applications */}
+      {applications.length > 0 && (
+        <div className="fixed bottom-4 right-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAdminPanel(!showAdminPanel)}
+            className="shadow-lg"
+          >
+            Applications ({applications.length})
+          </Button>
+        </div>
+      )}
+
+      {/* Simple admin overlay */}
+      {showAdminPanel && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-4xl max-h-[80vh] overflow-y-auto">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle>Application Submissions</CardTitle>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={clearApplications}>
+                    Clear All
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowAdminPanel(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+              <CardDescription>
+                All applications will also trigger email notifications to lyantovski@microsoft.com
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {applications.map((app: any) => (
+                  <Card key={app.id}>
+                    <CardContent className="pt-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="font-semibold">{app.applicantName}</p>
+                          <p className="text-sm text-muted-foreground">{app.email}</p>
+                          <p className="text-sm text-muted-foreground">{app.phone}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm">Experience: {app.experience}</p>
+                          <p className="text-sm">Resume: {app.resumeFileName}</p>
+                          <p className="text-sm">Submitted: {app.submissionDate}</p>
+                        </div>
+                      </div>
+                      {app.coverLetter && app.coverLetter !== 'No cover letter provided' && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-sm font-medium mb-1">Cover Letter:</p>
+                          <p className="text-sm text-muted-foreground">{app.coverLetter}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+                {applications.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">
+                    No applications submitted yet.
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

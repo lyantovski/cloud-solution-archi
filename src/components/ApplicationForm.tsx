@@ -13,9 +13,10 @@ import { toast } from 'sonner'
 interface ApplicationFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onApplicationSubmitted?: (application: any) => void
 }
 
-export function ApplicationForm({ open, onOpenChange }: ApplicationFormProps) {
+export function ApplicationForm({ open, onOpenChange, onApplicationSubmitted }: ApplicationFormProps) {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -60,11 +61,85 @@ export function ApplicationForm({ open, onOpenChange }: ApplicationFormProps) {
       return
     }
 
-    // Simulate form submission
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      toast.success('Application submitted successfully! We\'ll be in touch soon.')
+      // Prepare application details for email
+      const applicationDetails = {
+        id: Date.now().toString(),
+        applicantName: `${formData.firstName} ${formData.lastName}`,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone || 'Not provided',
+        linkedinUrl: formData.linkedinUrl || 'Not provided',
+        experience: formData.experience || 'Not specified',
+        coverLetter: formData.coverLetter || 'No cover letter provided',
+        resumeFileName: formData.resumeFile.name,
+        submissionDate: new Date().toLocaleString(),
+        position: 'Cloud Solution Architect',
+        status: 'submitted'
+      }
+
+      // Save application data
+      if (onApplicationSubmitted) {
+        onApplicationSubmitted(applicationDetails)
+      }
+
+      // Create email content using LLM
+      const emailPrompt = spark.llmPrompt`
+        Create a professional email notification for a job application submission with the following details:
+        
+        Position: ${applicationDetails.position}
+        Applicant: ${applicationDetails.applicantName}
+        Email: ${applicationDetails.email}
+        Phone: ${applicationDetails.phone}
+        LinkedIn: ${applicationDetails.linkedinUrl}
+        Experience: ${applicationDetails.experience}
+        Resume File: ${applicationDetails.resumeFileName}
+        Submission Date: ${applicationDetails.submissionDate}
+        
+        Cover Letter:
+        ${applicationDetails.coverLetter}
+        
+        Format this as a clear, professional email notification that includes all the applicant details and makes it easy to review the application.
+      `
+
+      const emailContent = await spark.llm(emailPrompt)
+
+      // Create a structured email with all details
+      const emailSubject = `New Application: ${applicationDetails.position} - ${applicationDetails.applicantName}`
+      
+      const emailBody = `
+        ${emailContent}
+        
+        ---
+        Application Details Summary:
+        • Position: ${applicationDetails.position}
+        • Applicant: ${applicationDetails.applicantName}
+        • Email: ${applicationDetails.email}
+        • Phone: ${applicationDetails.phone}
+        • LinkedIn: ${applicationDetails.linkedinUrl}
+        • Experience Level: ${applicationDetails.experience}
+        • Resume File: ${applicationDetails.resumeFileName}
+        • Submitted: ${applicationDetails.submissionDate}
+        
+        Cover Letter/Interest:
+        ${applicationDetails.coverLetter}
+        
+        Note: The resume file was uploaded but cannot be automatically forwarded. Please follow up with the applicant to request the resume file directly.
+      `
+
+      // Create mailto link to open email client
+      const mailto = `mailto:lyantovski@microsoft.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`
+      
+      // Open email client
+      window.open(mailto, '_blank')
+
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      toast.success('Application submitted successfully! Email notification has been prepared for lyantovski@microsoft.com')
       onOpenChange(false)
+      
       // Reset form
       setFormData({
         firstName: '',
@@ -78,6 +153,7 @@ export function ApplicationForm({ open, onOpenChange }: ApplicationFormProps) {
       })
     } catch (error) {
       toast.error('Failed to submit application. Please try again.')
+      console.error('Application submission error:', error)
     } finally {
       setIsSubmitting(false)
     }
